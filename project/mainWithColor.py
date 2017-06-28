@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 from project.classifyCar import classify
 from project.findObjects import find
+from project.getCar import get
+from project.shapedetector import ShapeDetector
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -13,20 +15,29 @@ ap.add_argument("-v", "--video", help="path to the video file")
 # TODO: determine minimum area from height
 ap.add_argument("-a", "--min-area", type=int, default=150, help="minimum area size")
 args = vars(ap.parse_args())
-
+droneHeight = 240
+focalLength = 2.8
+sensitivityFactor = 1.1
 # if the video argument is None, then we are reading from webcam
 if args.get("video", None) is None:
-    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-    camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0003_240meters.MOV")
-    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-   # camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-   # camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
-
-    time.sleep(0.25)
+    camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0003_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/matz/DJI_0003.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/matz/DJI_0004.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/matz/DJI_0005.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/matz/DJI_0006.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/matz/DJI_0007.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/matz/DJI_0008.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/accident/DJI_0012.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/accident/DJI_0013.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/accident/DJI_0014.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-05-15_Gadera_200m/DJI_0003.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-05-15_Gadera_200m/DJI_0004.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-05-15_Gadera_200m/DJI_0005.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-05-15_Gadera_200m/DJI_0006.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0001.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0002.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0003.MOV")
 
 # otherwise, we are reading from a video file
 else:
@@ -35,6 +46,8 @@ else:
 # initialize the first frame in the video stream
 prevGray = None
 # loop over the frames of the video
+sd = ShapeDetector()
+
 while True:
     # grab the current frame and initialize the occupied/unoccupied
     # text
@@ -47,7 +60,7 @@ while True:
         break
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    gray = cv2.GaussianBlur(gray, (3, 3), 0)
+    gray = cv2.GaussianBlur(gray, (5, 5), 0)
     # if the first frame is None, initialize it
     if prevGray is None:
         prevGray = gray
@@ -56,29 +69,25 @@ while True:
 
     # loop over the contours
     for c in cnts:
-        #print(cv2.moments(c))
-        # if the contour is too small, ignore it
-        if cv2.contourArea(c) < args["min_area"]:
+        car, rect, height, width, isCar = get(c, args["min_area"], 0, 20)
+        if isCar is None:
             continue
 
-        # compute the bounding box for the contour, draw it on the frame,
-        # and update the text
-        peri = cv2.arcLength(c, True)
-        approx = cv2.approxPolyDP(c, 0.04 * peri, True)
-        rect = cv2.minAreaRect(c)
-        width = rect[1][0]
-        height = rect[1][1]
-        if (width > height):
-            temp = width
-            width = height
-            height = temp
-        if width > 20:
-            continue
-        box = cv2.boxPoints(rect)
-        box = np.int0(box)
+        M = cv2.moments(c)
+        cX = int((M["m10"] / M["m00"]))
+        cY = int((M["m01"] / M["m00"]))
+        shape = sd.detect(c)
 
+        # multiply the contour (x, y)-coordinates by the resize ratio,
+        # then draw the contours and the name of the shape on the image
+        c = c.astype("float")
+        c = c.astype("int")
+        if shape is not "rectangle":
+            continue
+        cv2.putText(frame, shape, (cX, cY), cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5, (255, 255, 255), 2)
         # TODO: sizes depend on height
-        cv2.drawContours(frame, [box], 0, classify(c), 2)
+        cv2.drawContours(frame, [car], 0, classify(c), 2)
         text = "Occupied"
     # draw the text and timestamp on the frame
     cv2.putText(frame, "Tracking Status: {}".format(text), (10, 20),

@@ -19,7 +19,7 @@ def find(frame, gray, prevGray):
     # first frame
     frameDelta = cv2.absdiff(prevGray, gray)
     # TODO: determine threshold dynamically?
-    thresh = cv2.threshold(frameDelta, 10, 255, cv2.THRESH_BINARY)[1]
+    thresh = cv2.threshold(frameDelta, 9, 255, cv2.THRESH_BINARY)[1]
 
     # dilate the thresholded image to fill in holes, then find contours
     # on thresholded image
