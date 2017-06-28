@@ -4,13 +4,13 @@ import datetime
 import imutils
 import time
 import cv2
+import classifyCar as CC
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", help="path to the video file")
 ap.add_argument("-a", "--min-area", type=int, default=5, help="minimum area size")
 args = vars(ap.parse_args())
-
 # if the video argument is None, then we are reading from webcam
 if args.get("video", None) is None:
     camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")

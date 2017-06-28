@@ -1,10 +1,11 @@
 # import the necessary packages
 import argparse
 import datetime
-import imutils
 import time
 import cv2
 import numpy as np
+from project.classifyCar import classify
+from project.findObjects import find
 
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
@@ -15,7 +16,16 @@ args = vars(ap.parse_args())
 
 # if the video argument is None, then we are reading from webcam
 if args.get("video", None) is None:
-    camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+    camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0003_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+   # camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+   # camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/intersect/DJI_0002_240meters.MOV")
+
     time.sleep(0.25)
 
 # otherwise, we are reading from a video file
@@ -23,7 +33,7 @@ else:
     camera = cv2.VideoCapture(args["video"])
 
 # initialize the first frame in the video stream
-prevFrame = None
+prevGray = None
 # loop over the frames of the video
 while True:
     # grab the current frame and initialize the occupied/unoccupied
@@ -36,40 +46,13 @@ while True:
     if not grabbed:
         break
 
-    # resize the frame, convert it to grayscale, and blur it
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (3, 3), 0)
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-    # define range of blue color in HSV
-    lower_blue = np.array([110, 50, 50])
-    upper_blue = np.array([130, 255, 255])
-
-    # Threshold the HSV image to get only blue colors
-    mask = cv2.inRange(hsv, lower_blue, upper_blue)
-
-    # Bitwise-AND mask and original image
-    #res = cv2.bitwise_and(hsv, hsv, mask=mask)
-
-    #cv2.imshow('blue', cv2.cvtColor(res, cv2.COLOR_HSV2BGR))
-
     # if the first frame is None, initialize it
-    if prevFrame is None:
-        prevFrame = gray
+    if prevGray is None:
+        prevGray = gray
         continue
-
-    # compute the absolute difference between the current frame and
-    # first frame
-    frameDelta = cv2.absdiff(prevFrame, gray)
-    # TODO: determine threshold dynamically?
-    thresh = cv2.threshold(frameDelta, 10, 255, cv2.THRESH_BINARY)[1]
-
-    # dilate the thresholded image to fill in holes, then find contours
-    # on thresholded image
-    # TODO: optionally improve this?
-    thresh = cv2.dilate(thresh, None, iterations=2)
-    _, cnts, _ = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
-                                 cv2.CHAIN_APPROX_SIMPLE)
+    cnts = find(frame, gray, prevGray)
 
     # loop over the contours
     for c in cnts:
@@ -95,12 +78,7 @@ while True:
         box = np.int0(box)
 
         # TODO: sizes depend on height
-        if cv2.contourArea(c) > 600:
-            cv2.drawContours(frame, [box], 0, (0, 255, 0), 2)
-        elif cv2.contourArea(c) > 500:
-            cv2.drawContours(frame, [box], 0, (255, 0, 0), 2)
-        else:
-            cv2.drawContours(frame, [box], 0, (0, 0, 255), 2)
+        cv2.drawContours(frame, [box], 0, classify(c), 2)
         text = "Occupied"
     # draw the text and timestamp on the frame
     cv2.putText(frame, "Tracking Status: {}".format(text), (10, 20),
@@ -115,7 +93,7 @@ while True:
     if key == ord("q"):
         break
 
-    prevFrame = gray
+    prevGray = gray
 
 # cleanup the camera and close any open windows
 camera.release()
