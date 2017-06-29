@@ -6,7 +6,7 @@ import datetime
 import time
 import cv2
 import numpy as np
-from classifyCar import classify
+from classifyCar import generalClassify
 from findObjects import findByMovement
 from findObjects import findByShapeAndColor
 from getCar import get
@@ -24,11 +24,11 @@ def loopContours(cnts, desiredKind):
     global text
     # loop over the contours
     for c in cnts:
-        car, rect, height, width, isCar = get(c, args["min_area"], 15, 25)
+        car, rect, height, width, isCar = get(c, minimumCarHeight * carWidth * 0.5, carWidth * 0.5, carWidth * 1.5)
         if isCar is None:
             continue
 
-        classification, kind = classify(c, width, height)
+        classification, kind = generalClassify(height, maximumSuvHeight, maximumPrivateHeight)
         if showClassification(kind, desiredKind):
             cv2.drawContours(frame, [car], 0, classification, 2)
             printX(car, kind)
@@ -44,7 +44,6 @@ def printX(c, x):
 # construct the argument parser and parse the arguments
 ap = argparse.ArgumentParser()
 ap.add_argument("-v", "--video", help="path to the video file")
-# TODO: determine minimum area from height
 ap.add_argument("-a", "--min-area", type=int, default=100, help="minimum area size")
 ap.add_argument("-c", "--color", help="vehicle color to detect")
 ap.add_argument("-b", "--brand", help="vehicle kind to detect")
@@ -72,14 +71,23 @@ if args.get("video", None) is None:
     #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-05-15_Gadera_200m/DJI_0004.MOV")
     #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-05-15_Gadera_200m/DJI_0005.MOV")
     #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-05-15_Gadera_200m/DJI_0006.MOV")
-    camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0001.MOV")
+    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0001.MOV")
     #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0002.MOV")
-    #camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0003.MOV")
+    camera = cv2.VideoCapture("C:/Users/royshahaf/Desktop/hacknprotect/video/2017-06-01_Parking_junction_180m/DJI_0003.MOV")
 
 # otherwise, we are reading from a video file
 else:
     camera = cv2.VideoCapture(args["video"])
-
+# TODO: fix calculations
+cameraWidth = camera.get(3)
+cameraHeight = camera.get(4)
+droneHeight = 240
+focalLength = 28
+sensitivityFactor = 1.1
+carWidth = droneHeight * 1.7 / focalLength
+minimumCarHeight = (droneHeight * 3.5 / focalLength) * 0.5
+maximumPrivateHeight = (droneHeight * 4.5 / focalLength)
+maximumSuvHeight = (droneHeight * 4.5 / focalLength) * 1.5
 if args.get("brand", None) is None:
     desiredKind = "all"
 else:

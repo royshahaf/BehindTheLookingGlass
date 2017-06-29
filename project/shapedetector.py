@@ -31,6 +31,9 @@ class ShapeDetector:
         elif len(approx) == 5:
             shape = "pentagon"
 
+        elif len(approx) == 8:
+            shape = "octagon"
+
         # otherwise, we assume the shape is a circle
         else:
             shape = "circle"
